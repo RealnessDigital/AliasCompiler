@@ -6,36 +6,36 @@ use AliasCompiler\Helper\PhpFunctions;
 class Compiler
 {
 
-    private static $instance = null;
+    private static Compiler $instance;
 
     public static function getInstance(): Compiler
     {
-        if (static::$instance === null) {
+        if (!isset(static::$instance)) {
             static::$instance = new static();
         }
 
         return static::$instance;
     }
 
-    protected function __clone(){}
 
 
-
-    protected $valueCompiler;
+    protected ValueCompiler $valueCompiler;
 
     public function __construct(){
-        if (static::$instance === null) {
+        if (!isset(static::$instance)) {
             static::$instance = $this;
         }
 
         $this->valueCompiler = ValueCompiler::getInstance();
     }
 
-    public function getValueCompiler(){
+    public function getValueCompiler(): ValueCompiler
+    {
         return $this->valueCompiler;
     }
 
-    public function compile($response, $primary_keys = []){
+    public function compile($response, $primary_keys = []): array
+    {
         $compiled = [];
 
         foreach($response as $i => $row) {
@@ -49,9 +49,8 @@ class Compiler
                 } else if(PhpFunctions::str_starts_with($key, '?')){
                     if(is_null($value)){
                         continue;
-                    } else {
-                        $key = substr($key, 1);
                     }
+                    $key = substr($key, 1);
                 }
 
                 $item = (!empty($compiled[$item_id]))? $compiled[$item_id] : [];
@@ -63,7 +62,8 @@ class Compiler
         return array_values($compiled);
     }
 
-    protected function compileKeyAndValue($key, $value){
+    protected function compileKeyAndValue($key, $value): array
+    {
         if(PhpFunctions::str_contains($key, '>')){
             [$method, $key] = explode('>', $key);
 
@@ -88,25 +88,26 @@ class Compiler
                 $item[$key] = ($asObject)? (object)[] : [];
             }
 
-            $primary_key = $this->getPrimaryKeyAlias($keys, $offset, $primary_keys);
-            if($primary_key){
-                if(array_key_exists($primary_key, $row)){
-                    $primary_key_value = $row[$primary_key];
+            [$raw_primary_key, $primary_key] = $this->getObjectPrimaryKey($keys, $offset, $primary_keys);
+            if($raw_primary_key){
+                if(array_key_exists($raw_primary_key, $row)){
+                    $primary_key_value = $row[$raw_primary_key];
                     if($primary_key_value){
                         if($asObject){
-                            $new_item = (empty($item[$key][$primary_key_value]))? [] : $item[$key][$primary_key_value];
-                            $item[$key][$primary_key_value] = $this->setValueToNestedKeys($new_item, $row, $raw_key, $value, $primary_keys, $offset+1);
+                            $new_item = (!empty($item[$key]->{$primary_key_value}))? $item[$key]->{$primary_key_value} : [];
+                            $item[$key]->{$primary_key_value} = $this->setValueToNestedKeys($new_item, $row, $raw_key, $value, $primary_keys, $offset+1);
                         } else {
-                            $index = array_search($primary_key_value, array_column($item[$key], $primary_key)) ?? count($item[$key]);
-                            $new_item = (isset($item[$key][$index]))? $item[$key][$index] : [];
+                            $index = array_search($primary_key_value, array_column($item[$key], $primary_key));
+                            if($index === false) $index = count($item[$key]);
+                            $new_item = ($index < count($item[$key]))? $item[$key][$index] : [$primary_key => $primary_key_value];
                             $item[$key][$index] = $this->setValueToNestedKeys($new_item, $row, $raw_key, $value, $primary_keys, $offset+1);
                         }
                     }
                 } else {
-                    //throw new \Exception("No id for $raw_key found.");
+                    throw new \Exception("Primary key of '$raw_key' not found");
                 }
             } else {
-                //throw new \Exception("Invalid multidimensional setting for $raw_key.");
+                throw new \Exception("Invalid multidimensional configuration for '$raw_key'");
             }
         } else {
             if(!is_null($next_key)){
@@ -120,11 +121,11 @@ class Compiler
         return $item;
     }
 
-    protected function getPrimaryKeyAlias($keys, $key_index, $primary_keys){
-        $keys = array_slice($keys, 0, $key_index+1);
-        $array_key = implode('@', $keys);
+    protected function getObjectPrimaryKey($keys, $key_index, $primary_keys): array
+    {
+        $array_key = implode('@', array_slice($keys, 0, $key_index+1));
         $primary_key = (!empty($primary_keys[$array_key]))? $primary_keys[$array_key] : 'id';
-        return "$array_key@$primary_key";
+        return ["$array_key@$primary_key", $primary_key];
     }
 
 }

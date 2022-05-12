@@ -1,52 +1,73 @@
 <?php
 namespace AliasCompiler;
 
+use Closure;
+
 class ValueCompiler
 {
 
-    private static $instance = null;
+    private static ValueCompiler $instance;
 
-    public static function getInstance()
+    public static function getInstance(): ValueCompiler
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
+        if (!isset(static::$instance)) {
+            static::$instance = new static();
         }
 
-        return self::$instance;
+        return static::$instance;
     }
 
-    protected function __clone(){}
 
-    protected $compilers = [];
+
+    protected array $compilers = [];
 
     protected function __construct(){
-        $this->add(
-            'json',
-            function($value){
-                return json_decode($value);
-            }
-        );
+        if (!isset(static::$instance)) {
+            static::$instance = $this;
+        }
 
-        $this->add(
-            'serialized',
-            function($value){
-                return unserialize($value);
-            }
-        );
-
-        $this->add(
-            'notempty',
-            function($value){
-                return (!empty($value));
-            }
-        );
+        $this->_registerDefaultTypes();
     }
 
-    public function add($name, $closure){
+    protected function _registerDefaultTypes(){
+        $this->add('json', function($value){
+            return json_decode($value);
+        });
+
+        $this->add('serialized', function($value){
+            return unserialize($value);
+        });
+
+        $this->add('unserialize', function($value){
+            return unserialize($value);
+        });
+
+        $this->add('notempty', function($value){
+            return (!empty($value));
+        });
+
+        $this->add('string', function($value){
+            return strval($value);
+        });
+
+        $this->add('int', function($value){
+            return intval($value);
+        });
+
+        $this->add('float', function($value){
+            return floatval($value);
+        });
+
+        $this->add('double', function($value){
+            return doubleval($value);
+        });
+    }
+
+    public function add(string $name, Closure $closure){
         $this->compilers[$name] = $closure;
     }
 
-    public function compile($method, $value){
+    public function compile(string $method, $value){
         if(!empty($this->compilers[$method])){
             $closure = $this->compilers[$method];
             $value = $closure($value);
