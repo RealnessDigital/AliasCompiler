@@ -34,8 +34,9 @@ class Compiler
         return $this->valueCompiler;
     }
 
-    public function compile($response, $primary_keys = []): array
+    public function compile($data, array $primary_keys = []): array
     {
+        $response = $this->getResponse($data);
         $compiled = [];
 
         foreach($response as $i => $row) {
@@ -60,6 +61,22 @@ class Compiler
         }
 
         return array_values($compiled);
+    }
+
+    protected function getResponse($data): array
+    {
+        $class = get_class($data);
+        $response = [];
+
+        if($class == 'mysqli_result'){
+            while($data && $row = mysqli_fetch_assoc($data)){
+                $response[] = $row;
+            }
+        } else {
+            $response = (array)$data;
+        }
+
+        return $response;
     }
 
     protected function compileKeyAndValue($key, $value): array

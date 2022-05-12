@@ -1,7 +1,7 @@
 {
     "name": "realness/aliascompiler",
     "description": "Compile array of keys to nested objects",
-    "version": "0.2",
+    "version": "0.2.1",
     "license": "MIT",
     "authors": [
         {
