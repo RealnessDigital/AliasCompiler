@@ -72,6 +72,8 @@ class Compiler
             while($data && $row = mysqli_fetch_assoc($data)){
                 $response[] = $row;
             }
+        } else if(is_object($data) && method_exists($data, 'toArray')){
+            $response = call_user_func([$data, 'toArray']);
         } else {
             $response = (array)$data;
         }
