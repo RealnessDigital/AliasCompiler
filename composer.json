@@ -1,0 +1,21 @@
+{
+    "name": "realness/aliascompiler",
+    "description": "Compile array of keys to nested objects",
+    "version": "0.1",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Neil",
+            "email": "neil@realnessdigital.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "AliasCompiler\\": "src/"
+        }
+    }
+}
