@@ -6,7 +6,7 @@ use AliasCompiler\Helper\PhpFunctions;
 class Compiler
 {
 
-    private static Compiler $instance;
+    private static $instance;
 
     public static function getInstance(): Compiler
     {
@@ -19,7 +19,7 @@ class Compiler
 
 
 
-    protected ValueCompiler $valueCompiler;
+    protected $valueCompiler;
 
     public function __construct(){
         if (!isset(static::$instance)) {
@@ -42,21 +42,26 @@ class Compiler
         foreach($response as $i => $row) {
             if(is_object($row)) $row = (array)$row;
 
-            $item_id = $row[$primary_keys['root'] ?? 'id'];
-            foreach($row as $key => $value){
+            $primary_key = $primary_keys['root'] ?? 'id';
+            if(!empty($row[$primary_key])){
+                $item_id = $row[$primary_key];
+                foreach($row as $key => $value){
 
-                if(PhpFunctions::str_starts_with($key, '!')){
-                    continue;
-                } else if(PhpFunctions::str_starts_with($key, '?')){
-                    if(is_null($value)){
+                    if(PhpFunctions::str_starts_with($key, '!')){
                         continue;
+                    } else if(PhpFunctions::str_starts_with($key, '?')){
+                        if(is_null($value)){
+                            continue;
+                        }
+                        $key = substr($key, 1);
                     }
-                    $key = substr($key, 1);
+
+                    $item = (!empty($compiled[$item_id]))? $compiled[$item_id] : [];
+                    $compiled[$item_id] = $this->addCompiledKeyAndValueToItem($item, $row, $key, $value, $primary_keys);
+
                 }
-
-                $item = (!empty($compiled[$item_id]))? $compiled[$item_id] : [];
-                $compiled[$item_id] = $this->addCompiledKeyAndValueToItem($item, $row, $key, $value, $primary_keys);
-
+            } else {
+                throw new \Exception("Primary key not found");
             }
         }
 

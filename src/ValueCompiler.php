@@ -6,7 +6,7 @@ use Closure;
 class ValueCompiler
 {
 
-    private static ValueCompiler $instance;
+    private static $instance;
 
     public static function getInstance(): ValueCompiler
     {
@@ -19,7 +19,7 @@ class ValueCompiler
 
 
 
-    protected array $compilers = [];
+    protected $compilers = [];
 
     protected function __construct(){
         if (!isset(static::$instance)) {
